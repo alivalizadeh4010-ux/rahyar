@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>راهیار — تاکسی هوشمند</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0F1A;
+  --surface:#141927;
+  --card:#1C2436;
+  --border:#242D42;
+  --cyan:#00D4FF;
+  --cyan-dim:#0099BB;
+  --green:#00E585;
+  --yellow:#FFD84D;
+  --red:#FF5A5A;
+  --white:#F0F4FF;
+  --muted:#6B7A99;
+  --font:'Vazirmatn',sans-serif;
+}
+html{height:100%;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--white);min-height:100%;overflow-x:hidden}
+
+/* ── SPLASH ── */
+#splash{
+  position:fixed;inset:0;z-index:999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;
+  transition:opacity .5s ease;
+}
+#splash.hide{opacity:0;pointer-events:none}
+.splash-logo{font-size:3rem;font-weight:900;letter-spacing:-.03em;color:var(--white)}
+.splash-logo span{color:var(--cyan)}
+.splash-sub{font-size:.95rem;color:var(--muted)}
+.splash-bar{width:180px;height:3px;background:var(--border);border-radius:4px;overflow:hidden}
+.splash-fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;transition:width 1.6s ease}
+
+/* ── SHELL ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:72px;background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;padding:1.5rem 0;gap:.5rem;
+  z-index:10;flex-shrink:0;
+}
+.sidebar-logo{font-size:1.1rem;font-weight:900;color:var(--cyan);margin-bottom:1rem;letter-spacing:-.02em}
+.nav-btn{
+  width:48px;height:48px;border-radius:12px;background:transparent;border:none;
+  color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;transition:background .15s,color .15s;position:relative;
+}
+.nav-btn:hover{background:var(--card);color:var(--white)}
+.nav-btn.active{background:rgba(0,212,255,.12);color:var(--cyan)}
+.nav-btn .tooltip{
+  position:absolute;right:58px;top:50%;transform:translateY(-50%);
+  background:var(--card);color:var(--white);font-size:.75rem;white-space:nowrap;
+  padding:.35rem .7rem;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s;
+  border:1px solid var(--border);
+}
+.nav-btn:hover .tooltip{opacity:1}
+.sidebar-spacer{flex:1}
+.user-avatar{
+  width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--green));
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--bg);
+  cursor:pointer;
+}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;gap:1rem;padding:.9rem 1.5rem;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.topbar-title{font-size:1.1rem;font-weight:700;color:var(--white);flex:1}
+.badge{
+  padding:.25rem .75rem;border-radius:20px;font-size:.75rem;font-weight:600;
+  background:rgba(0,229,133,.12);color:var(--green);
+}
+.icon-btn{
+  width:36px;height:36px;border-radius:9px;background:var(--card);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;transition:color .15s;
+}
+.icon-btn:hover{color:var(--white)}
+
+/* ── CONTENT AREA ── */
+.content{flex:1;display:flex;overflow:hidden}
+
+/* ── PANEL ── */
+.panel{
+  width:340px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 1rem}
+.tab{
+  padding:.75rem 1rem;font-size:.85rem;font-weight:600;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;
+  white-space:nowrap;
+}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+/* ── RIDE REQUEST ── */
+.ride-form{padding:1rem;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem}
+.field-label{font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:.35rem;letter-spacing:.04em}
+.loc-input{
+  width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:.75rem 1rem .75rem 2.5rem;color:var(--white);font-family:var(--font);font-size:.9rem;
+  outline:none;transition:border-color .15s;
+}
+.loc-input:focus{border-color:var(--cyan)}
+.loc-wrapper{position:relative}
+.loc-dot{
+  position:absolute;right:1rem;top:50%;transform:translateY(-50%);
+  width:10px;height:10px;border-radius:50%;
+}
+.loc-dot.origin{background:var(--cyan)}
+.loc-dot.dest{background:var(--green)}
+.connector{
+  width:2px;height:24px;background:var(--border);margin: 0 auto;
+  position:relative;right:calc(100% - 1.5rem - 1px - 340px/2);
+}
+
+/* service cards */
+.service-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.svc-card{
+  background:var(--card);border:2px solid var(--border);border-radius:12px;
+  padding:.75rem .5rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;
+}
+.svc-card:hover{border-color:var(--cyan);background:rgba(0,212,255,.06)}
+.svc-card.selected{border-color:var(--cyan);background:rgba(0,212,255,.1)}
+.svc-icon{font-size:1.5rem;margin-bottom:.35rem}
+.svc-name{font-size:.75rem;font-weight:600;color:var(--white)}
+.svc-price{font-size:.7rem;color:var(--muted);margin-top:.15rem}
+
+/* estimate */
+.estimate-box{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.est-num{font-size:1.5rem;font-weight:900;color:var(--cyan)}
+.est-sub{font-size:.75rem;color:var(--muted)}
+.est-divider{width:1px;height:36px;background:var(--border)}
+.est-fare{font-size:1.1rem;font-weight:700;color:var(--white)}
+
+.btn-request{
+  width:100%;padding:1rem;background:linear-gradient(135deg,var(--cyan),#0088cc);
+  color:var(--bg);font-family:var(--font);font-size:1rem;font-weight:800;
+  border:none;border-radius:12px;cursor:pointer;transition:opacity .15s,transform .1s;
+  letter-spacing:.01em;
+}
+.btn-request:hover{opacity:.9;transform:translateY(-1px)}
+.btn-request:active{transform:translateY(0)}
+
+/* ── ACTIVE RIDE ── */
+.active-ride{display:none;flex-direction:column;gap:.75rem;padding:1rem;flex:1;overflow-y:auto}
+.driver-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.driver-avatar{
+  width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7B61FF,var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;
+}
+.driver-name{font-size:1rem;font-weight:700}
+.driver-meta{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+.driver-stars{color:var(--yellow);font-size:.8rem;margin-top:.2rem}
+.driver-plate{
+  margin-right:auto;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:.4rem .8rem;font-size:.85rem;font-weight:700;letter-spacing:.1em;color:var(--white);
+}
+.status-track{display:flex;flex-direction:column;gap:.5rem}
+.track-step{
+  display:flex;align-items:center;gap:.75rem;padding:.6rem .8rem;
+  border-radius:10px;background:var(--card);border:1px solid var(--border);
+}
+.track-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.track-dot.done{background:var(--green)}
+.track-dot.active{background:var(--cyan);box-shadow:0 0 0 3px rgba(0,212,255,.25);animation:pulse 1.2s infinite}
+.track-dot.pending{background:var(--border)}
+.track-label{font-size:.85rem;font-weight:600}
+.track-time{font-size:.75rem;color:var(--muted);margin-right:auto}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(0,212,255,.25)}50%{box-shadow:0 0 0 6px rgba(0,212,255,.1)}}
+
+.action-row{display:flex;gap:.6rem}
+.act-btn{
+  flex:1;padding:.75rem;border-radius:10px;border:1px solid var(--border);background:var(--card);
+  color:var(--white);font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:.4rem;transition:background .15s;
+}
+.act-btn:hover{background:var(--border)}
+.act-btn.danger{color:var(--red);border-color:rgba(255,90,90,.3)}
+.act-btn.danger:hover{background:rgba(255,90,90,.1)}
+
+/* ── HISTORY TAB ── */
+.history-list{padding:1rem;display:flex;flex-direction:column;gap:.7rem;overflow-y:auto;flex:1}
+.hist-item{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:.9rem 1rem;cursor:pointer;transition:border-color .15s;
+}
+.hist-item:hover{border-color:var(--cyan)}
+.hist-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+.hist-icon{font-size:1.1rem}
+.hist-route{font-size:.88rem;font-weight:600;flex:1}
+.hist-fare{font-size:.88rem;font-weight:700;color:var(--cyan)}
+.hist-meta{font-size:.75rem;color:var(--muted);display:flex;gap:1rem}
+.hist-status{
+  font-size:.7rem;font-weight:600;padding:.2rem .55rem;border-radius:20px;
+  background:rgba(0,229,133,.12);color:var(--green);
+}
+
+/* ── MAP AREA ── */
+.map-area{flex:1;position:relative;overflow:hidden;background:#0D1520}
+.map-canvas{width:100%;height:100%}
+.map-overlay{position:absolute;inset:0;pointer-events:none}
+/* city grid lines */
+.map-area::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* animated roads */
+.road{position:absolute;background:rgba(255,255,255,.06);border-radius:2px}
+.road-h{height:3px}
+.road-v{width:3px}
+
+/* cars */
+.car-marker{
+  position:absolute;font-size:1.4rem;transition:top .8s ease,left .8s ease;
+  filter:drop-shadow(0 0 6px rgba(0,212,255,.6));
+  cursor:pointer;transform:translate(-50%,-50%);
+}
+.car-marker:hover::after{
+  content:attr(data-tip);position:absolute;bottom:110%;right:50%;transform:translateX(50%);
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  padding:.3rem .6rem;font-size:.72rem;white-space:nowrap;color:var(--white);
+}
+
+/* ping on picked location */
+.loc-ping{
+  position:absolute;width:16px;height:16px;border-radius:50%;background:var(--cyan);
+  transform:translate(-50%,-50%);box-shadow:0 0 0 0 rgba(0,212,255,.6);
+  animation:ping 1.5s infinite;
+}
+@keyframes ping{
+  0%{box-shadow:0 0 0 0 rgba(0,212,255,.6)}
+  70%{box-shadow:0 0 0 14px rgba(0,212,255,0)}
+  100%{box-shadow:0 0 0 0 rgba(0,212,255,0)}
+}
+
+/* destination marker */
+.dest-pin{
+  position:absolute;transform:translate(-50%,-100%);font-size:1.8rem;
+  filter:drop-shadow(0 3px 6px rgba(0,229,133,.5));
+  animation:bounce .6s ease infinite alternate;
+}
+@keyframes bounce{from{transform:translate(-50%,-100%)}to{transform:translate(-50%,-115%)}}
+
+/* route line */
+.route-svg{position:absolute;inset:0;pointer-events:none}
+
+/* map controls */
+.map-controls{
+  position:absolute;top:1rem;left:1rem;display:flex;flex-direction:column;gap:.5rem;
+}
+.map-ctrl-btn{
+  width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);
+  color:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;transition:background .15s;
+}
+.map-ctrl-btn:hover{background:var(--card)}
+
+/* ETA chip on map */
+.eta-chip{
+  position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);
+  background:var(--surface);border:1px solid var(--border);border-radius:30px;
+  padding:.5rem 1.2rem;display:flex;align-items:center;gap:.75rem;
+  font-size:.85rem;color:var(--white);white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.eta-chip strong{color:var(--cyan)}
+
+/* notification toast */
+.toast{
+  position:fixed;top:1.25rem;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:.8rem 1.4rem;font-size:.88rem;font-weight:600;color:var(--white);
+  box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:500;transition:transform .3s ease;
+  display:flex;align-items:center;gap:.6rem;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* stats bar */
+.stats-bar{
+  display:flex;align-items:center;gap:1.5rem;padding:.6rem 1.5rem;
+  background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;
+}
+.stat-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted)}
+.stat-item strong{color:var(--white);font-size:.85rem}
+.stat-sep{width:1px;height:16px;background:var(--border)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">راه<span>یار</span></div>
+  <div class="splash-sub">تاکسی هوشمند شما</div>
+  <div class="splash-bar"><div class="splash-fill" id="splashFill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg">راننده پیدا شد!</span></div>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">ر</div>
+    <button class="nav-btn active" onclick="switchView('home')" id="nb-home">
+      🏠<span class="tooltip">خانه</span>
+    </button>
+    <button class="nav-btn" onclick="switchView('history')" id="nb-history">
+      📋<span class="tooltip">سوابق</span>
+    </button>
+    <button class="nav-btn" onclick="switchView('promo')" id="nb-promo">
+      🎁<span class="tooltip">تخفیف‌ها</span>
+    </button>
+    <button class="nav-btn" onclick="switchView('support')" id="nb-support">
+      💬<span class="tooltip">پشتیبانی</span>
+    </button>
+    <div class="sidebar-spacer"></div>
+    <button class="nav-btn" onclick="showToast('تنظیمات در نسخه بعدی')">
+      ⚙️<span class="tooltip">تنظیمات</span>
+    </button>
+    <div class="user-avatar" onclick="showToast('پروفایل کاربری')">ع</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbarTitle">سفارش سفر</span>
+      <span class="badge">● آنلاین</span>
+      <button class="icon-btn" onclick="showToast('اعلان‌های جدید: ۲')">🔔</button>
+      <button class="icon-btn" onclick="showToast('جستجو')">🔍</button>
+    </div>
+
+    <div class="content">
+
+      <!-- MAP -->
+      <div class="map-area" id="mapArea">
+        <!-- SVG route -->
+        <svg class="route-svg" id="routeSvg" viewBox="0 0 700 500" preserveAspectRatio="none"></svg>
+
+        <!-- static road stripes -->
+        <div class="road road-h" style="top:20%;left:0;right:0;opacity:.5"></div>
+        <div class="road road-h" style="top:45%;left:0;right:0"></div>
+        <div class="road road-h" style="top:70%;left:0;right:0;opacity:.5"></div>
+        <div class="road road-v" style="right:25%;top:0;bottom:0;opacity:.5"></div>
+        <div class="road road-v" style="right:55%;top:0;bottom:0"></div>
+        <div class="road road-v" style="right:75%;top:0;bottom:0;opacity:.5"></div>
+
+        <!-- car markers -->
+        <div class="car-marker" id="car1" style="top:30%;right:40%" data-tip="راننده: علی - ⭐4.9">🚖</div>
+        <div class="car-marker" id="car2" style="top:55%;right:65%" data-tip="راننده: مریم - ⭐4.8">🚕</div>
+        <div class="car-marker" id="car3" style="top:70%;right:30%" data-tip="راننده: حسن - ⭐4.7">🚖</div>
+        <div class="car-marker" id="car4" style="top:18%;right:70%" data-tip="راننده: فاطمه - ⭐5.0">🚕</div>
+
+        <!-- user location ping -->
+        <div class="loc-ping" id="userPing" style="top:45%;right:55%"></div>
+
+        <!-- destination pin (hidden initially) -->
+        <div class="dest-pin" id="destPin" style="display:none;top:25%;right:35%">📍</div>
+
+        <!-- map controls -->
+        <div class="map-controls">
+          <button class="map-ctrl-btn" onclick="zoomMap(1)" title="بزرگ‌نمایی">+</button>
+          <button class="map-ctrl-btn" onclick="zoomMap(-1)" title="کوچک‌نمایی">−</button>
+          <button class="map-ctrl-btn" onclick="centerMap()" title="موقعیت من">📍</button>
+        </div>
+
+        <!-- ETA chip -->
+        <div class="eta-chip" id="etaChip" style="display:none">
+          🚗 راننده در <strong id="etaMins">۴</strong> دقیقه می‌رسد &nbsp;|&nbsp; مسیر: <strong>۱۲ کیلومتر</strong>
+        </div>
+      </div>
+
+      <!-- PANEL -->
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" id="tab-order" onclick="switchTab('order')">سفارش</div>
+          <div class="tab" id="tab-active" onclick="switchTab('active')">سفر فعال</div>
+          <div class="tab" id="tab-hist" onclick="switchTab('hist')">سوابق</div>
+        </div>
+
+        <!-- ORDER FORM -->
+        <div class="ride-form" id="paneOrder">
+          <div>
+            <div class="field-label">📍 مبدأ</div>
+            <div class="loc-wrapper">
+              <div class="loc-dot origin"></div>
+              <input class="loc-input" id="originInput" placeholder="موقعیت فعلی شما" value="میدان آزادی، تهران"/>
+            </div>
+          </div>
+          <div>
+            <div class="field-label">🏁 مقصد</div>
+            <div class="loc-wrapper">
+              <div class="loc-dot dest"></div>
+              <input class="loc-input" id="destInput" placeholder="مقصد را وارد کنید" oninput="onDestInput(this.value)"/>
+            </div>
+          </div>
+
+          <div>
+            <div class="field-label">نوع سرویس</div>
+            <div class="service-row">
+              <div class="svc-card selected" onclick="selectSvc(this,'معمولی','۱۲,۰۰۰')">
+                <div class="svc-icon">🚕</div>
+                <div class="svc-name">معمولی</div>
+                <div class="svc-price">از ۱۲,۰۰۰ ت</div>
+              </div>
+              <div class="svc-card" onclick="selectSvc(this,'ممتاز','۲۲,۰۰۰')">
+                <div class="svc-icon">🚙</div>
+                <div class="svc-name">ممتاز</div>
+                <div class="svc-price">از ۲۲,۰۰۰ ت</div>
+              </div>
+              <div class="svc-card" onclick="selectSvc(this,'زنانه','۱۴,۰۰۰')">
+                <div class="svc-icon">👩</div>
+                <div class="svc-name">زنانه</div>
+                <div class="svc-price">از ۱۴,۰۰۰ ت</div>
+              </div>
+              <div class="svc-card" onclick="selectSvc(this,'موتوری','۶,۰۰۰')">
+                <div class="svc-icon">🛵</div>
+                <div class="svc-name">موتوری</div>
+                <div class="svc-price">از ۶,۰۰۰ ت</div>
+              </div>
+              <div class="svc-card" onclick="selectSvc(this,'مینی‌بوس','۳۵,۰۰۰')">
+                <div class="svc-icon">🚌</div>
+                <div class="svc-name">مینی‌بوس</div>
+                <div class="svc-price">از ۳۵,۰۰۰ ت</div>
+              </div>
+              <div class="svc-card" onclick="selectSvc(this,'بار','۱۸,۰۰۰')">
+                <div class="svc-icon">🚚</div>
+                <div class="svc-name">بار</div>
+                <div class="svc-price">از ۱۸,۰۰۰ ت</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="estimate-box" id="estimateBox" style="display:none">
+            <div>
+              <div class="est-num" id="estTime">۶ دقیقه</div>
+              <div class="est-sub">زمان رسیدن</div>
+            </div>
+            <div class="est-divider"></div>
+            <div>
+              <div class="est-fare" id="estFare">۱۸,۰۰۰ تومان</div>
+              <div class="est-sub">تخمین کرایه</div>
+            </div>
+            <div class="est-divider"></div>
+            <div>
+              <div class="est-num" style="color:var(--green)">۴ خودرو</div>
+              <div class="est-sub">راننده نزدیک</div>
+            </div>
+          </div>
+
+          <button class="btn-request" id="requestBtn" onclick="requestRide()">🔍 پیدا کردن راننده</button>
+        </div>
+
+        <!-- ACTIVE RIDE -->
+        <div class="active-ride" id="paneActive">
+          <div class="driver-card">
+            <div class="driver-avatar">🧑</div>
+            <div>
+              <div class="driver-name">علی رضایی</div>
+              <div class="driver-meta">پراید سفید | ۱۲ سال سابقه</div>
+              <div class="driver-stars">★★★★★ ۴.۹</div>
+            </div>
+            <div class="driver-plate">۱۲۳-ب۴۵</div>
+          </div>
+
+          <div class="status-track">
+            <div class="track-step">
+              <div class="track-dot done"></div>
+              <span class="track-label">سفارش تأیید شد</span>
+              <span class="track-time">۱۰:۳۲</span>
+            </div>
+            <div class="track-step">
+              <div class="track-dot active" id="trackDot2"></div>
+              <span class="track-label" id="trackLabel2">راننده در راه است</span>
+              <span class="track-time" id="trackTime2">~۴ دقیقه</span>
+            </div>
+            <div class="track-step">
+              <div class="track-dot pending" id="trackDot3"></div>
+              <span class="track-label" style="color:var(--muted)">سوار شدید</span>
+              <span class="track-time" id="trackTime3">—</span>
+            </div>
+            <div class="track-step">
+              <div class="track-dot pending" id="trackDot4"></div>
+              <span class="track-label" style="color:var(--muted)">رسیدن به مقصد</span>
+              <span class="track-time" id="trackTime4">—</span>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="act-btn" onclick="showToast('تماس با راننده...')">📞 تماس</button>
+            <button class="act-btn" onclick="showToast('پیام ارسال شد')">💬 پیام</button>
+            <button class="act-btn" onclick="showToast('موقعیت به دوستت فرستاده شد')">📤 اشتراک</button>
+          </div>
+          <button class="act-btn danger" onclick="cancelRide()">✕ لغو سفر</button>
+        </div>
+
+        <!-- HISTORY (inside panel) -->
+        <div class="history-list" id="paneHist" style="display:none">
+          <div class="hist-item" onclick="showToast('جزئیات سفر')">
+            <div class="hist-top">
+              <span class="hist-icon">🚕</span>
+              <span class="hist-route">آزادی ← ونک</span>
+              <span class="hist-fare">۱۸,۵۰۰ ت</span>
+            </div>
+            <div class="hist-meta">
+              <span>۱۴۰۳/۰۴/۰۱</span><span>۱۲ کیلومتر</span><span>۲۴ دقیقه</span>
+              <span class="hist-status">انجام شده</span>
+            </div>
+          </div>
+          <div class="hist-item" onclick="showToast('جزئیات سفر')">
+            <div class="hist-top">
+              <span class="hist-icon">🚙</span>
+              <span class="hist-route">تجریش ← فرحزاد</span>
+              <span class="hist-fare">۲۶,۰۰۰ ت</span>
+            </div>
+            <div class="hist-meta">
+              <span>۱۴۰۳/۰۳/۲۸</span><span>۱۷ کیلومتر</span><span>۳۱ دقیقه</span>
+              <span class="hist-status">انجام شده</span>
+            </div>
+          </div>
+          <div class="hist-item" onclick="showToast('جزئیات سفر')">
+            <div class="hist-top">
+              <span class="hist-icon">🛵</span>
+              <span class="hist-route">پونک ← صادقیه</span>
+              <span class="hist-fare">۷,۵۰۰ ت</span>
+            </div>
+            <div class="hist-meta">
+              <span>۱۴۰۳/۰۳/۲۰</span><span>۵ کیلومتر</span><span>۱۱ دقیقه</span>
+              <span class="hist-status">انجام شده</span>
+            </div>
+          </div>
+          <div class="hist-item" onclick="showToast('جزئیات سفر')">
+            <div class="hist-top">
+              <span class="hist-icon">🚕</span>
+              <span class="hist-route">بهشتی ← شریعتی</span>
+              <span class="hist-fare">۱۴,۲۰۰ ت</span>
+            </div>
+            <div class="hist-meta">
+              <span>۱۴۰۳/۰۳/۱۵</span><span>۹ کیلومتر</span><span>۱۹ دقیقه</span>
+              <span class="hist-status">انجام شده</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-item">🚖 <strong id="carsNearby">۴</strong> راننده نزدیک</div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">⏱ میانگین انتظار: <strong>۳ دقیقه</strong></div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">🌤 <strong>۲۸°</strong> تهران</div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">💳 موجودی: <strong>۴۵,۰۰۰ ت</strong></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SPLASH ──
+window.addEventListener('load',()=>{
+  const fill=document.getElementById('splashFill');
+  setTimeout(()=>fill.style.width='100%',100);
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(()=>document.getElementById('splash').remove(),600);
+  },2000);
+});
+
+// ── TOAST ──
+function showToast(msg,delay=0){
+  setTimeout(()=>{
+    const t=document.getElementById('toast');
+    document.getElementById('toastMsg').textContent=msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2800);
+  },delay);
+}
+
+// ── NAV SWITCH ──
+function switchView(v){
+  ['home','history','promo','support'].forEach(k=>{
+    document.getElementById('nb-'+k)?.classList.remove('active');
+  });
+  document.getElementById('nb-'+v)?.classList.add('active');
+  const titles={home:'سفارش سفر',history:'سوابق سفر',promo:'کدهای تخفیف',support:'پشتیبانی'};
+  document.getElementById('topbarTitle').textContent=titles[v]||'راهیار';
+  if(v==='history'){switchTab('hist');}
+  else if(v==='home'){switchTab('order');}
+  else showToast(titles[v]+' — به زودی');
+}
+
+// ── TABS ──
+function switchTab(t){
+  document.getElementById('paneOrder').style.display='none';
+  document.getElementById('paneActive').style.display='none';
+  document.getElementById('paneHist').style.display='none';
+  ['tab-order','tab-active','tab-hist'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  if(t==='order'){
+    document.getElementById('paneOrder').style.display='flex';
+    document.getElementById('tab-order').classList.add('active');
+  } else if(t==='active'){
+    document.getElementById('paneActive').style.display='flex';
+    document.getElementById('tab-active').classList.add('active');
+  } else {
+    document.getElementById('paneHist').style.display='flex';
+    document.getElementById('tab-hist').classList.add('active');
+  }
+}
+
+// ── DEST INPUT ──
+let svcName='معمولی', svcBase=12000;
+function onDestInput(v){
+  const box=document.getElementById('estimateBox');
+  const btn=document.getElementById('requestBtn');
+  const dest=document.getElementById('destPin');
+  const eta=document.getElementById('etaChip');
+  if(v.length>2){
+    box.style.display='flex';
+    const mins=Math.floor(Math.random()*5)+3;
+    const dist=Math.floor(Math.random()*15)+5;
+    const fare=(svcBase + dist*800).toLocaleString('fa-IR');
+    document.getElementById('estTime').textContent=`${toPersianNum(mins)} دقیقه`;
+    document.getElementById('estFare').textContent=`${fare} تومان`;
+    btn.textContent=`🚖 درخواست ${svcName}`;
+    dest.style.display='block';
+    drawRoute();
+  } else {
+    box.style.display='none';
+    btn.textContent='🔍 پیدا کردن راننده';
+    dest.style.display='none';
+    eta.style.display='none';
+    document.getElementById('routeSvg').innerHTML='';
+  }
+}
+
+function toPersianNum(n){
+  return String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+}
+
+// ── SERVICE SELECT ──
+function selectSvc(el,name,price){
+  document.querySelectorAll('.svc-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  svcName=name;
+  svcBase=parseInt(price.replace(/,/g,''));
+  if(document.getElementById('destInput').value.length>2) onDestInput(document.getElementById('destInput').value);
+}
+
+// ── DRAW ROUTE ──
+function drawRoute(){
+  const svg=document.getElementById('routeSvg');
+  // simple bezier from user ping to dest pin (approximate positions)
+  const x1=550, y1=225, x2=350, y2=125;
+  const cx=(x1+x2)/2, cy=Math.min(y1,y2)-60;
+  svg.innerHTML=`
+    <defs>
+      <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00D4FF" stop-opacity=".8"/>
+        <stop offset="100%" stop-color="#00E585" stop-opacity=".8"/>
+      </linearGradient>
+    </defs>
+    <path d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}"
+      fill="none" stroke="url(#rg)" stroke-width="3" stroke-dasharray="8 5"
+      stroke-dashoffset="0">
+      <animate attributeName="stroke-dashoffset" from="0" to="-26" dur="1s" repeatCount="indefinite"/>
+    </path>`;
+}
+
+// ── REQUEST RIDE ──
+function requestRide(){
+  const dest=document.getElementById('destInput').value;
+  if(!dest){showToast('⚠️ لطفاً مقصد را وارد کنید');return;}
+  const btn=document.getElementById('requestBtn');
+  btn.textContent='⏳ در حال جستجو...';
+  btn.disabled=true;
+  showToast('در حال یافتن راننده...',200);
+  setTimeout(()=>{
+    showToast('✅ راننده پیدا شد! علی رضایی',0);
+    document.getElementById('etaChip').style.display='flex';
+    switchTab('active');
+    btn.textContent='🚖 درخواست سفر';
+    btn.disabled=false;
+    simulateRideProgress();
+  },2500);
+}
+
+// ── RIDE PROGRESS ──
+function simulateRideProgress(){
+  let mins=4;
+  const countdown=setInterval(()=>{
+    mins--;
+    document.getElementById('etaMins').textContent=toPersianNum(mins);
+    if(mins<=0){
+      clearInterval(countdown);
+      document.getElementById('trackDot2').classList.remove('active');
+      document.getElementById('trackDot2').classList.add('done');
+      document.getElementById('trackLabel2').textContent='راننده رسید';
+      document.getElementById('trackTime2').textContent='۱۰:۳۶';
+      document.getElementById('trackDot3').classList.add('active');
+      document.getElementById('trackDot3').classList.remove('pending');
+      showToast('🚖 راننده جلوی در است!');
+    }
+  },1000);
+}
+
+// ── CANCEL RIDE ──
+function cancelRide(){
+  showToast('سفر لغو شد');
+  document.getElementById('etaChip').style.display='none';
+  document.getElementById('routeSvg').innerHTML='';
+  document.getElementById('destPin').style.display='none';
+  document.getElementById('estimateBox').style.display='none';
+  document.getElementById('destInput').value='';
+  switchTab('order');
+  // reset track dots
+  ['trackDot2','trackDot3','trackDot4'].forEach(id=>{
+    const d=document.getElementById(id);
+    d.classList.remove('done','active');
+    d.classList.add('pending');
+  });
+}
+
+// ── MAP CONTROLS ──
+let mapScale=1;
+function zoomMap(dir){
+  mapScale=Math.min(2,Math.max(0.6,mapScale+dir*0.15));
+  document.getElementById('mapArea').style.transform=`scale(${mapScale})`;
+  document.getElementById('mapArea').style.transformOrigin='center center';
+}
+function centerMap(){showToast('📍 موقعیت شما پیدا شد')}
+
+// ── ANIMATE CARS ──
+function moveCar(id,tRange,rRange){
+  const el=document.getElementById(id);
+  setInterval(()=>{
+    const t=tRange[0]+Math.random()*(tRange[1]-tRange[0]);
+    const r=rRange[0]+Math.random()*(rRange[1]-rRange[0]);
+    el.style.top=t+'%';
+    el.style.right=r+'%';
+  },2500+Math.random()*1500);
+}
+moveCar('car1',[25,40],[35,55]);
+moveCar('car2',[48,65],[60,75]);
+moveCar('car3',[62,78],[25,40]);
+moveCar('car4',[12,25],[62,78]);
+</script>
+</body>
+</html>
